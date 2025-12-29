@@ -48,7 +48,22 @@ document.addEventListener('DOMContentLoaded', () => {
       data.participants.forEach(email => {
         const li = document.createElement('li');
         li.className = 'participant-item';
-        li.textContent = email;
+        
+        // Create span for email
+        const emailSpan = document.createElement('span');
+        emailSpan.className = 'participant-email';
+        emailSpan.textContent = email;
+        li.appendChild(emailSpan);
+        
+        // Create delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '\u2715';
+        deleteBtn.type = 'button';
+        deleteBtn.title = 'Remove participant';
+        deleteBtn.addEventListener('click', () => removeParticipant(name, email, li));
+        
+        li.appendChild(deleteBtn);
         ul.appendChild(li);
       });
     } else {
@@ -77,6 +92,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function removeParticipant(activityName, email, listItem) {
+    fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+      method: 'POST'
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to unregister');
+        return res.json();
+      })
+      .then(data => {
+        listItem.remove();
+        // Remove from local state
+        const idx = activities[activityName].participants.indexOf(email);
+        if (idx > -1) activities[activityName].participants.splice(idx, 1);
+        
+        // If no participants left, show "No participants yet"
+        const card = document.querySelector(`.activity-card[data-activity="${CSS.escape(activityName)}"]`);
+        if (card) {
+          const ul = card.querySelector('.participants-list');
+          if (ul && ul.children.length === 0) {
+            const li = document.createElement('li');
+            li.className = 'participant-item';
+            li.textContent = 'No participants yet';
+            ul.appendChild(li);
+          }
+        }
+        showMessage(data.message || 'Participant removed', 'success');
+      })
+      .catch(err => {
+        showMessage(err.message || 'Failed to unregister participant', 'error');
+        console.error(err);
+      });
+  }
+
   function updateParticipantsUI(activityName, email) {
     const card = document.querySelector(`.activity-card[data-activity="${CSS.escape(activityName)}"]`);
     if (!card) return;
@@ -88,7 +136,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const li = document.createElement('li');
     li.className = 'participant-item';
-    li.textContent = email;
+    
+    // Create span for email
+    const emailSpan = document.createElement('span');
+    emailSpan.className = 'participant-email';
+    emailSpan.textContent = email;
+    li.appendChild(emailSpan);
+    
+    // Create delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.innerHTML = '\u2715';
+    deleteBtn.type = 'button';
+    deleteBtn.title = 'Remove participant';
+    deleteBtn.addEventListener('click', () => removeParticipant(activityName, email, li));
+    
+    li.appendChild(deleteBtn);
     ul.appendChild(li);
   }
 
